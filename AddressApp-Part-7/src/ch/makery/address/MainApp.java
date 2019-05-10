@@ -2,6 +2,7 @@ package ch.makery.address;
 
 import java.io.IOException;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
@@ -53,7 +54,13 @@ public class MainApp extends Application {
 
     public static void main(String[] args) {
     	graphicInterface layout = new graphicInterface();
-        layout.start(null);
+    	Platform.runLater(new Runnable() {
+    	    @Override
+    	    public void run() {
+    	    	layout.start( new Stage());
+    	    }
+    	});
+        
     }
 
 	@Override
