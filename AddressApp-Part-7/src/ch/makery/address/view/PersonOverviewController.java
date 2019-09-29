@@ -6,9 +6,9 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import ch.makery.address.addPerson;
-import ch.makery.address.graphicInterface;
+import ch.makery.address.MainApp;
 import ch.makery.address.model.Person;
+import ch.makery.address.model.dao.PersonDAO;
 import ch.makery.address.util.DateUtil;
 
 public class PersonOverviewController {
@@ -33,8 +33,9 @@ public class PersonOverviewController {
     private Label birthdayLabel;
 
     // Reference to the main application.
-    addPerson add = new addPerson();
-    graphicInterface layout = new graphicInterface();
+    private MainApp mainApp;
+    private PersonDAO personDao = new PersonDAO();
+
 
     /**
      * The constructor.
@@ -61,11 +62,16 @@ public class PersonOverviewController {
                 (observable, oldValue, newValue) -> showPersonDetails(newValue));
     }
 
-    public void setMainApp(graphicInterface graphicInterface) {
-        this.layout = graphicInterface;
+    /**
+     * Is called by the main application to give a reference back to itself.
+     *
+     * @param mainApp
+     */
+    public void setMainApp(MainApp mainApp) {
+        this.mainApp = mainApp;
 
         // Add observable list data to the table
-        personTable.setItems(add.getPersonData());
+        personTable.setItems(mainApp.getPersonList().getPersonData());
     }
 
     /**
@@ -100,12 +106,19 @@ public class PersonOverviewController {
     @FXML
     private void handleDeletePerson() {
         int selectedIndex = personTable.getSelectionModel().getSelectedIndex();
+        Person selectedPerson = personTable.getSelectionModel().getSelectedItem();
         if (selectedIndex >= 0) {
             personTable.getItems().remove(selectedIndex);
+            try {
+				personDao.remove(selectedPerson.getFirstName(), selectedPerson.getLastName());
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         } else {
             // Nothing selected.
             Alert alert = new Alert(AlertType.WARNING);
-            alert.initOwner(layout.getPrimaryStage());
+            alert.initOwner(mainApp.getPrimaryStage());
             alert.setTitle("No Selection");
             alert.setHeaderText("No Person Selected");
             alert.setContentText("Please select a person in the table.");
@@ -114,12 +127,23 @@ public class PersonOverviewController {
         }
     }
 
+    /**
+     * Called when the user clicks the new button. Opens a dialog to edit
+     * details for a new person.
+     */
     @FXML
     private void handleNewPerson() {
         Person tempPerson = new Person();
-        boolean okClicked = layout.showPersonEditDialog(tempPerson);
+        boolean okClicked = mainApp.showPersonEditDialog(tempPerson);
         if (okClicked) {
-            add.getPersonData().add(tempPerson);
+            mainApp.getPersonList().addPerson(tempPerson);
+
+            try {
+				personDao.insert(tempPerson);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         }
     }
 
@@ -130,16 +154,25 @@ public class PersonOverviewController {
     @FXML
     private void handleEditPerson() {
         Person selectedPerson = personTable.getSelectionModel().getSelectedItem();
+        String oldFirstName = selectedPerson.getFirstName();
+        String oldLastName = selectedPerson.getLastName();
+
         if (selectedPerson != null) {
-            boolean okClicked = layout.showPersonEditDialog(selectedPerson);
+            boolean okClicked = mainApp.showPersonEditDialog(selectedPerson);
             if (okClicked) {
                 showPersonDetails(selectedPerson);
+                try {
+					personDao.update(oldFirstName, oldLastName, selectedPerson);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
             }
 
         } else {
             // Nothing selected.
             Alert alert = new Alert(AlertType.WARNING);
-            alert.initOwner(layout.getPrimaryStage());
+            alert.initOwner(mainApp.getPrimaryStage());
             alert.setTitle("No Selection");
             alert.setHeaderText("No Person Selected");
             alert.setContentText("Please select a person in the table.");

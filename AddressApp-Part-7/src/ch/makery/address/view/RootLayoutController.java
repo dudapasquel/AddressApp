@@ -6,9 +6,11 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.stage.FileChooser;
-import ch.makery.address.addPerson;
-import ch.makery.address.birthdayStatistics;
-import ch.makery.address.graphicInterface;
+import ch.makery.address.MainApp;
+import ch.makery.address.model.LoadPersonDataToFile;
+import ch.makery.address.model.PersonList;
+import ch.makery.address.model.SavePersonDataToFile;
+import ch.makery.address.model.dao.PersonDAO;
 
 /**
  * The controller for the root layout. The root layout provides the basic
@@ -20,17 +22,18 @@ import ch.makery.address.graphicInterface;
 public class RootLayoutController {
 
     // Reference to the main application
-    private graphicInterface mainApp;
-    public graphicInterface layout = new graphicInterface();
-    addPerson add = new addPerson();
-    birthdayStatistics birthday = new birthdayStatistics();
+    private MainApp mainApp;
+    private PersonList personList;
+    private PersonDAO personDao = new PersonDAO();
+
     /**
      * Is called by the main application to give a reference back to itself.
      *
      * @param mainApp
      */
-    public void setMainApp(graphicInterface layout) {
-        this.layout = layout;
+    public void setMainApp(MainApp mainApp) {
+        this.mainApp = mainApp;
+        personList = mainApp.getPersonList();
     }
 
     /**
@@ -38,8 +41,14 @@ public class RootLayoutController {
      */
     @FXML
     private void handleNew() {
-        add.getPersonData().clear();
-        mainApp.setPersonFilePath(null);
+        mainApp.getPersonList().getPersonData().clear();
+        try {
+			personDao.removeAll();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        //mainApp.setPersonFilePath(null);
     }
 
     /**
@@ -58,7 +67,13 @@ public class RootLayoutController {
         File file = fileChooser.showOpenDialog(mainApp.getPrimaryStage());
 
         if (file != null) {
-            layout.loadPersonDataFromFile(file);
+        	LoadPersonDataToFile loadFile = new LoadPersonDataToFile(file);
+
+        	try {
+				personList = loadFile.loadPersonDataToFile();
+			} catch (Exception e) {
+				showErrorAlertSaveData(file.getPath());
+			}
         }
     }
 
@@ -68,12 +83,19 @@ public class RootLayoutController {
      */
     @FXML
     private void handleSave() {
-        File personFile = mainApp.getPersonFilePath();
+       /* File personFile = mainApp.getPersonFilePath();
         if (personFile != null) {
-            mainApp.savePersonDataToFile(personFile);
-        } else {
+        	SavePersonDataToFile savePerson = new SavePersonDataToFile(personFile);
+
+        	try{
+        		savePerson.savePersonDataToFile(personList);
+        	} catch(Exception ex){
+        		showErrorAlertSaveData(personFile.getPath());
+        	}
+
+    	} else {
             handleSaveAs();
-        }
+        }*/
     }
 
     /**
@@ -81,7 +103,7 @@ public class RootLayoutController {
      */
     @FXML
     private void handleSaveAs() {
-        FileChooser fileChooser = new FileChooser();
+        /*FileChooser fileChooser = new FileChooser();
 
         // Set extension filter
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter(
@@ -96,8 +118,15 @@ public class RootLayoutController {
             if (!file.getPath().endsWith(".xml")) {
                 file = new File(file.getPath() + ".xml");
             }
-            mainApp.savePersonDataToFile(file);
-        }
+
+            SavePersonDataToFile savePerson = new SavePersonDataToFile(file);
+
+        	try{
+        		savePerson.savePersonDataToFile(personList);
+        	} catch(Exception ex){
+        		showErrorAlertSaveData(file.getPath());
+        	}
+        }*/
     }
 
     /**
@@ -126,6 +155,15 @@ public class RootLayoutController {
      */
     @FXML
     private void handleShowBirthdayStatistics() {
-      birthday.showBirthdayStatistics();
+      mainApp.showBirthdayStatistics();
     }
+
+	private void showErrorAlertSaveData(String caminhoArquivo) {
+		Alert alert = new Alert(AlertType.ERROR);
+		alert.setTitle("Error");
+		alert.setHeaderText("Could not save data");
+		alert.setContentText("Could not save data to file:\n" + caminhoArquivo);
+
+		alert.showAndWait();
+	}
 }
